@@ -262,6 +262,33 @@ function setOptionPanel() {
     };
   }
 
+  function bindnumberinput(id, item) {
+    let input = document.getElementById(id);
+    input.value = gamesettings[item];
+    gamesettings.restoreCallbacks.push(function () {
+      input.value = gamesettings[item];
+      checkdefault(input, item);
+    });
+    checkdefault(input, item);
+    input.oninput = function () {
+      let val = input.value;
+      if (val === "" || isNaN(val)) return;
+      gamesettings[item] = val;
+      checkdefault(input, item);
+    };
+    input.onchange = function () {
+      let val = input.value;
+      if (val === "" || isNaN(val)) {
+        input.value = gamesettings[item];
+        return;
+      }
+      gamesettings[item] = parseFloat(val);
+      gamesettings.loadToGame();
+      saveToLocal();
+      checkdefault(input, item);
+    };
+  }
+
   function bindkeyselector(id, keynameitem, keycodeitem) {
     let btn = document.getElementById(id);
     let activate = function () {
@@ -334,9 +361,7 @@ function setOptionPanel() {
   bindrange("musicvolume-range", "musicvolume", function (v) {
     return v + "%";
   });
-  bindrange("audiooffset-range", "audiooffset", function (v) {
-    return v + "ms";
-  });
+  bindnumberinput("audiooffset-input", "audiooffset");
   bindcheck("beatmap-hitsound-check", "beatmapHitsound");
 
   // mods
