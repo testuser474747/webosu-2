@@ -95,7 +95,7 @@
     </div>
   </div>
   <script>
-    if (window.localforage) {
+    if (window.localforage=localStorage) {
       window.localforage.getItem("likedsidset", function (err, val) {
         if (err) {
           alert("Error loading liked beatmap list");
