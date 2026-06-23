@@ -26,7 +26,7 @@ function startpreview(box) {
 
     // Set initial volume to 0 and start playing
     audio.volume = 0;
-    audio.play();
+    //audio.play();
     document.body.appendChild(audio);
 
     // Function to gradually increase volume
