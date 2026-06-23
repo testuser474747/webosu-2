@@ -62,7 +62,7 @@ function startpreview(box) {
     return audio
 }
 function startdownload(box) {
-    let currentAudio = startpreview(box);
+    ///let currentAudio = startpreview(box);
     if (box.downloading) {
         return;
     }
@@ -132,7 +132,7 @@ function startdownload(box) {
             box.oszblob = blob;
             bar.className = "finished";
             box.classList.remove("downloading");
-            currentAudio.softstop();
+            //currentAudio.softstop();
         })
         .catch(error => {
             console.error("Download failed:", error.message);
