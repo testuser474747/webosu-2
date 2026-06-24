@@ -19,70 +19,55 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-
-  // Only handle GET requests
   if (request.method !== "GET") return;
 
-  // Determine if the request is for an HTML document
+  const url = new URL(request.url);
+  
+  // Aggressive HTML check: Is it a navigation, does it end in .html, or is it the root /
   const isHtmlRequest = 
     request.mode === "navigate" || 
-    (request.headers.get("accept")?.includes("text/html"));
+    url.pathname.endsWith(".html") || 
+    url.pathname.endsWith("/");
 
   if (isHtmlRequest) {
-    // --- NETWORK-FIRST STRATEGY (For HTML) ---
+    // --- FORCE NETWORK-FIRST FOR HTML ---
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
 
       try {
-        // 1. Try to fetch the latest HTML from the network
-        const response = await fetch(request);
+        // We add {cache: 'reload'} to bypass the browser's HTTP cache
+        // and fetch directly from the server.
+        const networkResponse = await fetch(request, { cache: 'reload' });
 
-        // 2. If successful, update the cache so it's ready for next offline load
-        if (response && (response.ok || response.type === "opaque")) {
-          try {
-            await cache.put(request, response.clone());
-          } catch (e) {
-            console.warn("Cache put failed for HTML:", request.url, e);
-          }
+        if (networkResponse && networkResponse.ok) {
+          // Overwrite the old version in the cache immediately
+          await cache.put(request, networkResponse.clone());
+          return networkResponse;
         }
-
-        return response;
+        
+        throw new Error('Network response was not ok');
       } catch (err) {
-        // 3. If network fails (offline), try serving from cache
-        const cached = await cache.match(request);
-        if (cached) return cached;
-
-        // 4. If not in cache either, return an error
+        // Fallback to cache only if network fails
+        const cachedResponse = await cache.match(request);
+        if (cachedResponse) return cachedResponse;
+        
         return Response.error();
       }
     })());
   } else {
-    // --- CACHE-FIRST STRATEGY (For Assets: JS, CSS, Images, Audio) ---
+    // --- CACHE-FIRST FOR ASSETS (Original logic) ---
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
-
-      // 1. Try cache first
       const cached = await cache.match(request);
       if (cached) return cached;
 
       try {
-        // 2. If not in cache, fetch from network
         const response = await fetch(request);
-
-        // 3. Cache valid or opaque responses for next time
-        const canCache = response && (response.ok || response.type === "opaque");
-
-        if (canCache) {
-          try {
-            await cache.put(request, response.clone());
-          } catch (e) {
-            console.warn("Cache put failed:", request.url, e);
-          }
+        if (response && (response.ok || response.type === "opaque")) {
+          await cache.put(request, response.clone());
         }
-
         return response;
       } catch (err) {
-        // 4. Network failed and not in cache
         return Response.error();
       }
     })());
