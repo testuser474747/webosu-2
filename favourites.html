@@ -76,9 +76,6 @@
           });
       </script>
     </div>
-    <!-- <div class="side-panel">
-                to be activated in script
-            </div> -->
     <div class="statuslines" id="statuslines">
       <div class="progress" id="script-progress">
         Scripts
@@ -95,80 +92,50 @@
     </div>
   </div>
   <script>
-  function debug(msg) {
-    alert("[DEBUG] " + msg);
-  }
-
-  if (!window.localforage) {
-    alert("localforage not supported");
-  } else {
-    try {
+    if (!window.localforage) {
+      console.error("localforage not supported");
+    } else {
       window.localforage.getItem("likedsidset", function (err, val) {
+        var beatmapList = document.getElementById("beatmap-list");
+        var btnMore = document.getElementById("btnmore");
+
         if (err) {
-          alert("Error loading liked beatmap list:\n" + err);
-          return;
-        }
-        debug(JSON.stringify(val))
-        if (!val || !val.length) {
-          document.getElementById("beatmap-list").innerText =
-            "There are no beatmaps to show, add more.";
-          debug("No liked beatmaps found (empty or null value)");
+          beatmapList.innerText = "Could not get liked beatmaps.";
+          btnMore.style.display = "none";
           return;
         }
 
-        // Normalize list safely
-        const list = Array.isArray(val) ? val : Array.from(val);
-        debug("Loaded list length: " + list.length);
-
-        const btnMore = document.getElementById("btnmore");
-        const beatmapList = document.getElementById("beatmap-list");
-
-        if (!btnMore || !beatmapList) {
-          alert("Missing DOM elements (btnmore or beatmap-list)");
+        if (!val || !val.size) {
+          beatmapList.innerText = "Heart any beatmap to add them here.";
+          btnMore.style.display = "none";
           return;
         }
+
+        var list = Array.from(val);
 
         function addlist(startoffset, maxlength) {
-          debug("addlist called: start=" + startoffset + " max=" + maxlength);
-
-          if (typeof addBeatmapSid !== "function") {
-            alert("addBeatmapSid is not defined!");
-            return;
-          }
-
           for (
-            let i = startoffset;
+            var i = startoffset;
             i < list.length && i < startoffset + maxlength;
             i++
           ) {
-            try {
-              addBeatmapSid(list[i]);
-            } catch (e) {
-              alert("Error in addBeatmapSid:\n" + e);
-            }
+            addBeatmapSid(list[i], beatmapList);
           }
-
           if (list.length <= startoffset + maxlength) {
             btnMore.style.display = "none";
-            debug("Hiding Load More button (end of list)");
           }
         }
 
-        // initial load
         addlist(0, 20);
 
-        let cur = 20;
+        var cur = 20;
         btnMore.onclick = function () {
-          debug("Load more clicked. cur=" + cur);
           addlist(cur, 20);
           cur += 20;
         };
       });
-    } catch (e) {
-      alert("Fatal localforage error:\n" + e);
     }
-  }
-</script>
+  </script>
 </body>
 
 </html>
