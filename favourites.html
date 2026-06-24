@@ -103,7 +103,8 @@
     }
 
     if (val && val.length) {
-      const list = val;
+      if (val && val.length) {
+  const list = Array.isArray(val) ? val : Array.from(val);
 
       function addlist(startoffset, maxlength) {
         for (
