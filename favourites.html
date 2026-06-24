@@ -95,41 +95,37 @@
     </div>
   </div>
   <script>
-    if (window.localforage=localStorage) {
-      window.localforage.getItem("likedsidset", function (err, val) {
-        if (err) {
-          alert("Error loading liked beatmap list");
-          return;
-        }
-        if (val && val.size) {
-          list = Array.from(val);
-          function addlist(startoffset, maxlength) {
-            for (
-              let i = startoffset;
-              i < list.length && i < startoffset + maxlength;
-              ++i
-            )
-              addBeatmapSid(list[i]);
-            if (list.length <= startoffset + maxlength) {
-              document
-                .getElementById("btnmore")
-                .setAttribute("style", "display:none;");
-            }
-          }
-          addlist(0, 20);
-          var cur = 20;
-          document.getElementById("btnmore").onclick = function () {
-            addlist(cur, 20);
-            cur += 20;
-          };
-        } else {
-          document.getElementById("beatmap-list").innerText =
-            "There are no beatmaps to show, add more.";
-        }
-      });
-    } else {
-      alert("localforage not supported");
+    const raw = localStorage.getItem("likedsidset");
+const val = raw ? JSON.parse(raw) : null;
+
+if (val && Array.isArray(val) && val.length > 0) {
+  const list = val;
+
+  function addlist(startoffset, maxlength) {
+    for (
+      let i = startoffset;
+      i < list.length && i < startoffset + maxlength;
+      ++i
+    ) {
+      addBeatmapSid(list[i]);
     }
+
+    if (list.length <= startoffset + maxlength) {
+      document.getElementById("btnmore").style.display = "none";
+    }
+  }
+
+  addlist(0, 20);
+
+  let cur = 20;
+  document.getElementById("btnmore").onclick = function () {
+    addlist(cur, 20);
+    cur += 20;
+  };
+} else {
+  document.getElementById("beatmap-list").innerText =
+    "There are no beatmaps to show, add more.";
+}
   </script>
 </body>
 
