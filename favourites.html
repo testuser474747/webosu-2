@@ -81,7 +81,7 @@
             </div> -->
     <div class="statuslines" id="statuslines">
       <div class="progress" id="script-progress">
-        Scripts file change debug
+        Scripts
         <div class="lds-dual-ring"></div>
       </div>
       <div class="progress" id="skin-progress">
@@ -108,7 +108,7 @@
           alert("Error loading liked beatmap list:\n" + err);
           return;
         }
-
+        debug(JSON.stringify(val))
         if (!val || !val.length) {
           document.getElementById("beatmap-list").innerText =
             "There are no beatmaps to show, add more.";
