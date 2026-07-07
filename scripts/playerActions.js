@@ -10,9 +10,9 @@ define([], function () {
     if (!hit && game.mouse) {
       // if not hit with traditional (lagged) cursor position,
       // try predicted position with more tolerance
-      let res = game.mouse(new Date().getTime());
+      /*let res = game.mouse(new Date().getTime());
       res.time = click.time;
-      hit = upcoming.find(inUpcoming_grace(res));
+      hit = upcoming.find(inUpcoming_grace(res));*/
     }
     if (hit) {
       if (hit.type == "circle" || hit.type == "slider") {
