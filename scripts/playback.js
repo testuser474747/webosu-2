@@ -1052,7 +1052,7 @@ define(["osu", "playerActions", "SliderMesh", "overlay/score", "overlay/volume",
                     let dy = game.mouseY - at.y;
                     let followPixelSize = hit.followSize * this.circleRadius;
                     let isfollowing = dx * dx + dy * dy <= followPixelSize * followPixelSize;
-                    let predict = game.mouse(this.realtime);
+                    let predict = {x:game.mouseX,y:game.mouseY,r:0};
                     let dx1 = predict.x - at.x;
                     let dy1 = predict.y - at.y;
                     isfollowing |= dx1 * dx1 + dy1 * dy1 <= (followPixelSize + predict.r) * (followPixelSize + predict.r);
