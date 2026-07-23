@@ -1,5 +1,15 @@
 // delayed js loader
+const BUILD_ID = "20260723-mobile-touch-1";
 
+function versionedUrl(url) {
+  const separator = url.includes("?") ? "&" : "?";
+  return (
+    url +
+    separator +
+    "v=" +
+    encodeURIComponent(BUILD_ID)
+  );
+}
 function loadScript(url, callback, aux) {
 	let script = document.createElement("script");
 	document.head.appendChild(script);
@@ -10,7 +20,7 @@ function loadScript(url, callback, aux) {
 			script.setAttribute(key, aux[key]);
 		}
 	}
-	script.src = url;
+	script.src = versionedUrl(url);//script.src = url;
 }
 
 
