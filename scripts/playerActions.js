@@ -187,7 +187,17 @@ define([], function () {
         }
       }
     }
-
+    var changedTouchesContain = function (event, identifier) {
+      if (identifier === null) return false;
+    
+      for (var i = 0; i < event.changedTouches.length; i++) {
+        if (event.changedTouches[i].identifier === identifier) {
+          return true;
+        }
+      }
+    
+      return false;
+    };
     var mousemoveCallback = function (e) {
       if (playback.autopilot) return;
       playback.game.mouseX = ((e.clientX - gfx.xoffset) / gfx.width) * 512;
@@ -427,22 +437,28 @@ define([], function () {
     };
 
     var touchendCallback = function (e) {
-      /*
-       * Release touch buttons even if the game became paused while a
-       * finger was held, preventing a permanently stuck game.down state.
-       */
       if (!playback.relax) {
         updateTouchButtons(e.touches);
       }
-
+    
       if (playback.game.paused || playback.ended) return;
-
+    
       e.preventDefault();
-
-      /*
-       * If the cursor finger ended, choose the closest remaining finger.
-       * With no remaining touches, keep the cursor at its last position.
-       */
+    
+      var cursorTouchEnded =
+        changedTouchesContain(e, cursorTouchId);
+    
+      // A non-cursor clicking finger ended.
+      // Do not write mouseX or mouseY.
+      if (!cursorTouchEnded) {
+        return;
+      }
+    
+      if (!e.touches || e.touches.length === 0) {
+        cursorTouchId = null;
+        return;
+      }
+    
       updateCursorFromTouches(e.touches);
     };
 
