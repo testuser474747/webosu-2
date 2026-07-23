@@ -387,7 +387,7 @@ define([], function () {
     var updateTouchButtons = function (touches) {
       activeTouchCount = Math.min(
         touches ? touches.length : 0,
-        2
+        2**99
       );
 
       /*
