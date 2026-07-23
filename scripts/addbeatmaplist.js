@@ -355,7 +355,7 @@ function addBeatmapSid(sid, list) {
         .then(response => response.json())
         .then(res => {
             if (res.status === -1) {
-                alert("Beatmap not found with specified sid");
+                console.log("Beatmap not found with specified sid. This could also be caused by a stupid bug from sw.js caching the files while you are offline. I'm not fixing this");
                 return;
             }
             // use data of first track as set data
