@@ -3,17 +3,26 @@
 
 <head><script>
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").then(
-        (registration) => {
-          console.log("Service Worker registered:", registration.scope);
-        },
-        (err) => {
-          console.log("Service Worker registration failed:", err);
-        }
-      );
-    });
-  }
+  window.addEventListener("load", function () {
+    navigator.serviceWorker
+      .register("./sw.js", {
+        updateViaCache: "none",
+      })
+      .then(function (registration) {
+        registration.update();
+        console.log(
+          "Service Worker registered:",
+          registration.scope
+        );
+      })
+      .catch(function (error) {
+        console.error(
+          "Service Worker registration failed:",
+          error
+        );
+      });
+  });
+}
 </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-GZ2M72GJ5S"></script>
