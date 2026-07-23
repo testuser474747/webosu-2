@@ -15,7 +15,7 @@
  * so downloaded beatmaps survive deployments.
  */
 
-const APP_VERSION = "2026-07-23-offline-v2";
+const APP_VERSION = "app-v3";
 
 const SHELL_CACHE = `webosu-shell-${APP_VERSION}`;
 const RUNTIME_CACHE = `webosu-runtime-${APP_VERSION}`;
