@@ -1,5 +1,5 @@
 const JS_CACHE_PREFIX = "webosu-js-";
-const JS_CACHE = `${JS_CACHE_PREFIX}v3-no-prediction`;
+const JS_CACHE = `${JS_CACHE_PREFIX}v1`;
 
 const STATIC_CACHE = "webosu-static-v1";
 const BEATMAP_CACHE = "webosu-beatmaps-v1";
