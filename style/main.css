@@ -1752,3 +1752,11 @@ body:not(.sound-ready) .difficulty-item {
   margin-top: 1em;
   width: 100%;
 }
+.game-area,
+.game-area canvas {
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
