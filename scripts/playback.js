@@ -674,22 +674,7 @@ define(["osu", "playerActions", "SliderMesh", "overlay/score", "overlay/volume",
                 }
             }
 
-            this.updateCursorPredictVisualizer = function () {
-                if (!this.predictVisualizer && game.mouse) {
-                    // create visualizer
-                    let o = this.predictVisualizer = new PIXI.Sprite(Skin["sliderb.png"]);
-                    o.anchor.set(0.5);
-                    o.tint = 0x00ff00;
-                    this.gamefield.addChild(o);
-                }
-                if (this.predictVisualizer) {
-                    let res = game.mouse(new Date().getTime()); // prediction result
-                    this.predictVisualizer.x = res.x;
-                    this.predictVisualizer.y = res.y;
-                    this.predictVisualizer.scale.set(res.r / 120);
-                    this.predictVisualizer.bringToFront();
-                }
-            }
+            
 
             SliderMesh.prototype.initialize(combos, this.circleRadius, {
                 dx: 2 * gfx.width / window.innerWidth / 512,
@@ -1048,15 +1033,18 @@ define(["osu", "playerActions", "SliderMesh", "overlay/score", "overlay/volume",
                         hit.approach.y = at.y;
                     }
 
-                    let dx = game.mouseX - at.x;
-                    let dy = game.mouseY - at.y;
-                    let followPixelSize = hit.followSize * this.circleRadius;
-                    let isfollowing = dx * dx + dy * dy <= followPixelSize * followPixelSize;
-                    let predict = {x:game.mouseX,y:game.mouseY,r:0};
-                    let dx1 = predict.x - at.x;
-                    let dy1 = predict.y - at.y;
-                    isfollowing |= dx1 * dx1 + dy1 * dy1 <= (followPixelSize + predict.r) * (followPixelSize + predict.r);
-                    let activated = this.game.down && isfollowing || hit.followSize > 1.01;
+                    const dx = game.mouseX - at.x;
+					const dy = game.mouseY - at.y;
+					const followPixelSize =
+					    hit.followSize * this.circleRadius;
+					
+					const isfollowing =
+					    dx * dx + dy * dy <=
+					    followPixelSize * followPixelSize;
+					
+					const activated =
+					    (this.game.down && isfollowing) ||
+					    hit.followSize > 1.01;
 
 
                     // slider tick judgement
