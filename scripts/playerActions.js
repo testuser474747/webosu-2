@@ -224,55 +224,229 @@ define([], function () {
         playback.game.M1down ||
         playback.game.M2down;
     };
-    var touchmoveCallback = function (e) {
-      if (!e.touches || !e.touches[0]) return;
+        var cursorTouchId = null;
+    var activeTouchCount = 0;
 
-      // PREVENT BROWSER SCROLLING
-      if (!playback.game.paused && !playback.ended) {
-        e.preventDefault();
-      }
+    // Prevent cursor ownership rapidly switching when two fingers
+    // are almost the same distance from the note.
+    var CURSOR_SWITCH_HYSTERESIS = 12; // osu! pixels
 
-      var touch = e.touches[0];
-      playback.game.mouseX = ((touch.clientX - gfx.xoffset) / gfx.width) * 512;
-      playback.game.mouseY = ((touch.clientY - gfx.yoffset) / gfx.height) * 384;
+    var touchToOsu = function (touch) {
+      return {
+        x: ((touch.clientX - gfx.xoffset) / gfx.width) * 512,
+        y: ((touch.clientY - gfx.yoffset) / gfx.height) * 384,
+      };
     };
-    var touchstartCallback = function (e) {
-      touchmoveCallback(e);
-      if (playback.game.M1down) {
-        if (playback.game.M2down) {
-          return;
-        } else {
-          playback.game.M2down = true;
+
+    var findTouchById = function (touches, identifier) {
+      if (identifier === null) return null;
+
+      for (var i = 0; i < touches.length; i++) {
+        if (touches[i].identifier === identifier) {
+          return touches[i];
         }
-      } else {
-        playback.game.M1down = true;
       }
-      if (!playback.game.paused && !playback.ended) {
-        e.preventDefault();
+
+      return null;
+    };
+
+    var getTouchTarget = function () {
+      var now = playback.osu.audio.getPosition() * 1000;
+
+      /*
+       * Prefer an active slider or spinner. This prevents cursor ownership
+       * changing to the next circle while the player is holding a slider.
+       */
+      var activeLongObject = playback.upcomingHits.find(function (hit) {
+        return (
+          !hit.destroyed &&
+          (hit.type === "slider" || hit.type === "spinner") &&
+          hit.time <= now &&
+          hit.endTime >= now
+        );
+      });
+
+      if (activeLongObject) {
+        if (
+          activeLongObject.type === "slider" &&
+          activeLongObject.ball
+        ) {
+          return {
+            x: activeLongObject.ball.x,
+            y: activeLongObject.ball.y,
+          };
+        }
+
+        return {
+          x: activeLongObject.x,
+          y: activeLongObject.y,
+        };
       }
+
+      // upcomingHits is ordered, so this selects the next playable note.
+      var nextHit = playback.upcomingHits.find(function (hit) {
+        return (
+          !hit.destroyed &&
+          hit.score < 0 &&
+          hit.time >= now - playback.MehTime
+        );
+      });
+
+      if (!nextHit) return null;
+
+      return {
+        x: nextHit.x,
+        y: nextHit.y,
+      };
+    };
+
+    var chooseCursorTouch = function (touches) {
+      if (!touches || touches.length === 0) {
+        cursorTouchId = null;
+        return null;
+      }
+
+      var currentTouch = findTouchById(touches, cursorTouchId);
+      var target = getTouchTarget();
+
+      /*
+       * When no note is available, preserve the existing cursor finger.
+       * Only fall back to touches[0] when there was no previous cursor.
+       */
+      if (!target) {
+        var fallback = currentTouch || touches[0];
+        cursorTouchId = fallback.identifier;
+        return fallback;
+      }
+
+      var bestTouch = touches[0];
+      var bestPoint = touchToOsu(bestTouch);
+      var bestDistance =
+        Math.pow(bestPoint.x - target.x, 2) +
+        Math.pow(bestPoint.y - target.y, 2);
+
+      for (var i = 1; i < touches.length; i++) {
+        var point = touchToOsu(touches[i]);
+        var distance =
+          Math.pow(point.x - target.x, 2) +
+          Math.pow(point.y - target.y, 2);
+
+        if (distance < bestDistance) {
+          bestTouch = touches[i];
+          bestDistance = distance;
+        }
+      }
+
+      /*
+       * Keep the current cursor finger unless another finger is
+       * meaningfully closer. This avoids jitter around equal distances.
+       */
+      if (
+        currentTouch &&
+        currentTouch.identifier !== bestTouch.identifier
+      ) {
+        var currentPoint = touchToOsu(currentTouch);
+        var currentDistance =
+          Math.pow(currentPoint.x - target.x, 2) +
+          Math.pow(currentPoint.y - target.y, 2);
+
+        if (
+          Math.sqrt(currentDistance) <=
+          Math.sqrt(bestDistance) + CURSOR_SWITCH_HYSTERESIS
+        ) {
+          bestTouch = currentTouch;
+        }
+      }
+
+      cursorTouchId = bestTouch.identifier;
+      return bestTouch;
+    };
+
+    var updateCursorFromTouches = function (touches) {
+      // In Autopilot, touches should click but never move the cursor.
+      if (playback.autopilot) return;
+
+      var cursorTouch = chooseCursorTouch(touches);
+      if (!cursorTouch) return;
+
+      var point = touchToOsu(cursorTouch);
+      playback.game.mouseX = point.x;
+      playback.game.mouseY = point.y;
+    };
+
+    var updateTouchButtons = function (touches) {
+      activeTouchCount = Math.min(
+        touches ? touches.length : 0,
+        2
+      );
+
+      /*
+       * One active touch is M1; two active touches are M1 + M2.
+       * The identity does not matter for holding sliders—only whether
+       * at least one contact remains down.
+       */
+      playback.game.M1down = activeTouchCount >= 1;
+      playback.game.M2down = activeTouchCount >= 2;
+
       playback.game.down =
         playback.game.K1down ||
         playback.game.K2down ||
         playback.game.M1down ||
         playback.game.M2down;
-      checkClickdown();
     };
+
+    var touchmoveCallback = function (e) {
+      if (playback.game.paused || playback.ended) return;
+
+      e.preventDefault();
+      updateCursorFromTouches(e.touches);
+    };
+
+    var touchstartCallback = function (e) {
+      if (playback.game.paused || playback.ended) return;
+
+      e.preventDefault();
+
+      /*
+       * Select the closest finger first, then judge the press at that
+       * cursor location. A farther newly-added finger therefore causes
+       * a click without teleporting the cursor to that finger.
+       */
+      updateCursorFromTouches(e.touches);
+
+      // Relax mode moves the cursor but generates clicks automatically.
+      if (!playback.relax) {
+        var previousTouchCount = activeTouchCount;
+        updateTouchButtons(e.touches);
+
+        // Do not generate additional presses for third/fourth fingers.
+        if (activeTouchCount > previousTouchCount) {
+          checkClickdown();
+        }
+      }
+    };
+
     var touchendCallback = function (e) {
-      touchmoveCallback(e);
-      if (playback.game.M1down) {
-        playback.game.M1down = false;
-      } else if (playback.game.M2down) {
-        playback.game.M2down = false;
+      /*
+       * Release touch buttons even if the game became paused while a
+       * finger was held, preventing a permanently stuck game.down state.
+       */
+      if (!playback.relax) {
+        updateTouchButtons(e.touches);
       }
-      if (!playback.game.paused && !playback.ended) {
-        e.preventDefault();
-      }
-      playback.game.down =
-        playback.game.K1down ||
-        playback.game.K2down ||
-        playback.game.M1down ||
-        playback.game.M2down;
+
+      if (playback.game.paused || playback.ended) return;
+
+      e.preventDefault();
+
+      /*
+       * If the cursor finger ended, choose the closest remaining finger.
+       * With no remaining touches, keep the cursor at its last position.
+       */
+      updateCursorFromTouches(e.touches);
     };
+
+    var touchcancelCallback = touchendCallback;
     var keydownCallback = function (e) {
       if (e.keyCode == playback.game.K1keycode) {
         if (playback.game.K1down) return;
@@ -304,41 +478,47 @@ define([], function () {
         playback.game.M2down;
     };
 
-    // --- 1. Movement Listeners (Handle dragging and moving) ---
-    // Player moves the cursor in Normal mode and Relax mode.
-    if (!playback.autoplay && !playback.autopilot) {
-      playback.game.window.addEventListener("mousemove", mousemoveCallback);
+        var touchSupported =
+      "ontouchstart" in window ||
+      navigator.maxTouchPoints > 0;
 
-      if ("ontouchstart" in window) {
-        // We use { passive: false } to ensure preventDefault() works to stop scrolling
-        playback.game.window.addEventListener("touchmove", touchmoveCallback, {
-          passive: false,
-        });
-      }
-    }
+    /*
+     * Normal:
+     *   move cursor + click
+     *
+     * Relax:
+     *   move cursor, no manual click
+     *
+     * Autopilot:
+     *   click, no cursor movement
+     *
+     * Autoplay:
+     *   no player input
+     */
+    if (touchSupported && !playback.autoplay) {
+      playback.game.window.addEventListener(
+        "touchstart",
+        touchstartCallback,
+        { passive: false }
+      );
 
-    // --- 2. Action Listeners (Handle clicking/tapping) ---
-    // Player clicks in Normal mode and Autopilot mode.
-    if (!playback.autoplay && !playback.relax) {
-      // Mouse Clicking
-      if (playback.game.allowMouseButton) {
-        playback.game.window.addEventListener("mousedown", mousedownCallback);
-        playback.game.window.addEventListener("mouseup", mouseupCallback);
-      }
+      playback.game.window.addEventListener(
+        "touchmove",
+        touchmoveCallback,
+        { passive: false }
+      );
 
-      // Keyboard Clicking
-      playback.game.window.addEventListener("keydown", keydownCallback);
-      playback.game.window.addEventListener("keyup", keyupCallback);
+      playback.game.window.addEventListener(
+        "touchend",
+        touchendCallback,
+        { passive: false }
+      );
 
-      // Touch Tapping
-      if ("ontouchstart" in window) {
-        playback.game.window.addEventListener("touchstart", touchstartCallback, {
-          passive: false,
-        });
-        playback.game.window.addEventListener("touchend", touchendCallback, {
-          passive: false,
-        });
-      }
+      playback.game.window.addEventListener(
+        "touchcancel",
+        touchcancelCallback,
+        { passive: false }
+      );
     }
 
     playback.game.cleanupPlayerActions = function () {
@@ -353,6 +533,10 @@ define([], function () {
         touchstartCallback
       );
       playback.game.window.removeEventListener("touchend", touchendCallback);
+      playback.game.window.removeEventListener(
+        "touchcancel",
+        touchcancelCallback
+      );
     };
   };
 
