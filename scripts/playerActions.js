@@ -477,7 +477,36 @@ define([], function () {
         playback.game.M1down ||
         playback.game.M2down;
     };
+// Cursor movement in Normal and Relax modes.
+if (!playback.autoplay && !playback.autopilot) {
+  playback.game.window.addEventListener(
+    "mousemove",
+    mousemoveCallback
+  );
+}
 
+// Manual clicking in Normal and Autopilot modes.
+if (!playback.autoplay && !playback.relax) {
+  if (playback.game.allowMouseButton) {
+    playback.game.window.addEventListener(
+      "mousedown",
+      mousedownCallback
+    );
+    playback.game.window.addEventListener(
+      "mouseup",
+      mouseupCallback
+    );
+  }
+
+  playback.game.window.addEventListener(
+    "keydown",
+    keydownCallback
+  );
+  playback.game.window.addEventListener(
+    "keyup",
+    keyupCallback
+  );
+}
         var touchSupported =
       "ontouchstart" in window ||
       navigator.maxTouchPoints > 0;
