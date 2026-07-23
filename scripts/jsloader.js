@@ -39,20 +39,32 @@ window.beatmaplistLoadedCallback = function () {
 			window.aaaaa += 1;
 			if (window.aaaaa == 4) {
 				// load scripts of game
-				loadScript("scripts/lib/require.js", function() {
-		            require.config({
-		                paths: {
-		                    underscore: 'lib/underscore',
-		                    sound: 'lib/sound'
-		                },
-		                shim: {
-		                    "underscore": {
-		                        exports: "_"
-		                    }
-		                },
-		                // urlArgs: "bust=" +  (new Date()).getTime()
-		            });
-				}, {"data-main":"scripts/initgame"});
+				loadScript("scripts/lib/require.js", function () {
+				  require.config({
+				    baseUrl: "scripts",
+				
+				    paths: {
+				      underscore: "lib/underscore",
+				      sound: "lib/sound",
+				    },
+				
+				    shim: {
+				      underscore: {
+				        exports: "_",
+				      },
+				    },
+				
+				    urlArgs:
+				      "v=" + encodeURIComponent(BUILD_ID),
+				  });
+				
+				  /*
+				   * Load initgame only after urlArgs is configured.
+				   * Using data-main can begin loading initgame before the onload
+				   * callback configures the cache-busting argument.
+				   */
+				  require(["initgame"]);
+				});
 				// load Liked list
 				if (window.localforage) {
 					localforage.getItem("likedsidset", function(err, item) {
